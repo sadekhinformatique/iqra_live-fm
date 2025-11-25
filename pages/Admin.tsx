@@ -1,48 +1,71 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { StationSettings } from '../types';
-import { getSettings, saveSettings, checkAuth, login, logout } from '../services/settingsService';
-import { Save, LogOut, Settings, Globe, Palette, Lock, Upload, Image as ImageIcon, AlertCircle, CheckCircle } from 'lucide-react';
+import { fetchSettings, saveSettings, checkAuth, login, logout } from '../services/settingsService';
+import { Save, LogOut, Settings, Globe, Palette, Lock, Upload, Image as ImageIcon, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { DEFAULT_SETTINGS } from '../constants';
 
 const Admin: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [password, setPassword] = useState('');
-  const [settings, setSettings] = useState<StationSettings>(getSettings());
+  const [settings, setSettings] = useState<StationSettings>(DEFAULT_SETTINGS);
   const [statusMsg, setStatusMsg] = useState<{type: 'success' | 'error', text: string} | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setIsAuthenticated(checkAuth());
-    setSettings(getSettings());
+    const init = async () => {
+      const auth = await checkAuth();
+      setIsAuthenticated(auth);
+      if (auth) {
+        const data = await fetchSettings();
+        setSettings(data);
+      }
+      setIsLoadingAuth(false);
+    };
+    init();
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (login(password)) {
+    setIsLoadingAuth(true);
+    const success = await login(password);
+    
+    if (success) {
       setIsAuthenticated(true);
       setPassword('');
       setStatusMsg(null);
+      // Charger les settings après login
+      const data = await fetchSettings();
+      setSettings(data);
     } else {
       setStatusMsg({ type: 'error', text: "Mot de passe incorrect (Indice: password)" });
     }
+    setIsLoadingAuth(false);
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     setIsAuthenticated(false);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
+    setStatusMsg(null);
+    
     try {
-      saveSettings(settings);
+      await saveSettings(settings);
       setStatusMsg({ type: 'success', text: "Configuration sauvegardée avec succès !" });
-      
-      // Petit délai pour laisser l'utilisateur lire le message avant le reload (nécessaire pour propager les changements globaux proprement ici)
+      // Petit délai pour laisser l'utilisateur lire le message
       setTimeout(() => {
-        window.location.reload(); 
+         window.location.reload();
       }, 1500);
     } catch (err) {
-      setStatusMsg({ type: 'error', text: "Erreur lors de la sauvegarde." });
+      setStatusMsg({ type: 'error', text: "Erreur technique lors de la sauvegarde." });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -60,7 +83,6 @@ const Admin: React.FC = () => {
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validation simple de taille (Max 1MB pour localStorage)
       if (file.size > 1024 * 1024) {
         setStatusMsg({ type: 'error', text: "L'image est trop lourde (Max 1Mo)." });
         return;
@@ -76,6 +98,16 @@ const Admin: React.FC = () => {
     }
   };
 
+  // Loading initial
+  if (isLoadingAuth) {
+      return (
+        <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+            <Loader2 className="text-blue-500 animate-spin" size={32} />
+        </div>
+      );
+  }
+
+  // Login Screen
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900 px-4 relative overflow-hidden">
@@ -127,6 +159,7 @@ const Admin: React.FC = () => {
     );
   }
 
+  // Admin Dashboard
   return (
     <div className="min-h-screen bg-slate-900 text-slate-200 font-sans selection:bg-blue-500/30">
       {/* Navbar */}
@@ -153,7 +186,7 @@ const Admin: React.FC = () => {
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-6 py-8 pb-24">
         
-        {/* Header with Title and Save Button */}
+        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h2 className="text-3xl font-bold text-white mb-1">Configuration</h2>
@@ -292,10 +325,11 @@ const Admin: React.FC = () => {
           <div className="fixed bottom-6 right-6 z-40">
             <button
                 type="submit"
-                className="flex items-center gap-2 px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-full shadow-lg hover:shadow-blue-500/40 transition-all transform hover:-translate-y-1 active:translate-y-0"
+                disabled={isSaving}
+                className="flex items-center gap-2 px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-full shadow-lg hover:shadow-blue-500/40 transition-all transform hover:-translate-y-1 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed"
             >
-                <Save size={20} />
-                Enregistrer les modifications
+                {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+                {isSaving ? 'Sauvegarde...' : 'Enregistrer les modifications'}
             </button>
           </div>
 
