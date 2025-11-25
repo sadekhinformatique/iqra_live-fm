@@ -5,11 +5,27 @@ import { DEFAULT_SETTINGS } from '../constants';
 const SETTINGS_KEY = 'radio_station_settings';
 const AUTH_KEY = 'radio_admin_auth';
 
-// --- CONFIGURATION PRODUCTION ---
-// Mettre à true pour utiliser votre vrai backend (PHP/Node/Python)
-// Mettre à false pour tester en local avec le navigateur (simulation)
-const USE_API = false; 
-const API_BASE_URL = '/api';
+// --- CONFIGURATION PRODUCTION (Via Variables d'Environnement) ---
+// Ces valeurs peuvent être définies dans votre interface d'hébergement (Netlify, Vercel, Render)
+// VITE_USE_API: 'true' pour utiliser un vrai backend, sinon mode démo (localStorage)
+// VITE_API_URL: L'adresse de votre backend (ex: https://api.maradio.com)
+// VITE_ADMIN_PASSWORD: Le mot de passe pour le mode démo (défaut: 'password')
+
+// Helper pour accéder aux variables d'environnement en toute sécurité
+const getEnv = () => {
+  try {
+    // @ts-ignore
+    return (import.meta as any).env || {};
+  } catch {
+    return {};
+  }
+};
+
+const env = getEnv();
+
+const USE_API = env.VITE_USE_API === 'true';
+const API_BASE_URL = env.VITE_API_URL || '/api';
+const DEMO_PASSWORD = env.VITE_ADMIN_PASSWORD || 'password';
 
 // --- INTERFACE API RÉELLE (FETCH) ---
 
@@ -88,7 +104,8 @@ async function mockCheckAuth(): Promise<boolean> {
 
 async function mockLogin(password: string): Promise<boolean> {
   await delay(800); // Simulation vérification hash (bcrypt)
-  if (password === 'password') {
+  // Vérification contre le mot de passe défini dans l'environnement ou 'password' par défaut
+  if (password === DEMO_PASSWORD) {
     const state: AuthState = { isAuthenticated: true };
     localStorage.setItem(AUTH_KEY, JSON.stringify(state));
     return true;

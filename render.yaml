@@ -1,0 +1,26 @@
+services:
+  # Configuration pour un "Static Site" (Recommandé pour ce projet React)
+  # Coût : Gratuit sur Render
+  - type: static
+    name: livestream-radio-pro
+    env: static
+    buildCommand: npm install && npm run build
+    publishDir: dist
+    envVars:
+      - key: VITE_ADMIN_PASSWORD
+        value: password
+      - key: VITE_USE_API
+        value: "false"
+      - key: NODE_VERSION
+        value: 20.11.0
+
+  # Optionnel : Si vous préférez déployer en tant que "Web Service" (Node.js)
+  # Décommentez la section ci-dessous et supprimez la section "type: static"
+  # - type: web
+  #   name: livestream-radio-server
+  #   env: node
+  #   buildCommand: npm install && npm run build
+  #   startCommand: npm start
+  #   envVars:
+  #     - key: VITE_ADMIN_PASSWORD
+  #       value: password
