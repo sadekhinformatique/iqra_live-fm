@@ -5,7 +5,7 @@ export const DEFAULT_SETTINGS: StationSettings = {
   radioName: "NeoWave FM",
   logoUrl: "https://picsum.photos/id/453/400/400", // Placeholder abstract image
   // A reliable public stream for testing (Icecast example)
-  streamUrl: "https://stream.zeno.fm/0r0xa854pb8uv", 
+  streamUrl: "https://stream.zeno.fm/ztmkyozjspltv", 
   playlistUrl: "",
   primaryColor: "#3b82f6", // Blue-500
   socials: {
